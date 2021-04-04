@@ -29,6 +29,8 @@ def get_hoga(hscpNo, n=3) -> pd.DataFrame:
 
         if response.status_code != 200:
             return response.text, -1
+        print(response.status_code)
+        print(response.text)
 
         # parse result
         data = json.loads(response.text)
