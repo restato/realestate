@@ -3,6 +3,9 @@ import pandas as pd
 import altair as alt
 from datetime import datetime, time
 
+column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜',
+               'floor': '층', 'transaction_amount': '거래금액(억)', 'transaction_year': '거래일자'}
+
 
 def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     if 'apt_name' in df.columns:
@@ -33,7 +36,7 @@ def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
         df['dedicated_area'] = df['dedicated_area'].apply(lambda x: round(x))
         df['dedicated_area'] = df['dedicated_area'].astype(object)
         df['dedicated_area'] = df['dedicated_area'].apply(
-            lambda x: str(x) + "\t\t")  # fix bug for display as tabl
+            lambda x: str(x))  # fix bug for display as tabl
 
     return df
 
@@ -97,43 +100,54 @@ def run_the_app():
 
     # Chart #1
     st.markdown("""
-        ### 우리 옆집은 얼마 🤫
-
+        # 우리 옆집은 얼마 🤫
+     
         * 문득 궁금했습니다. 지금 얼마에 사서 살고 있는걸까?
         * 층/전용면적(m2) 단위로 언제 얼마에 매매했는지 차트에 나타냈습니다.
+        * 차트에서 흰색은 거래 이력이 없음을 의미합니다.
                 """)
 
+    col1, col2 = st.beta_columns([1, 2])
     latest_df = df.loc[[apt_name]][['transaction_date', 'floor', 'dedicated_area', 'transaction_amount']].sort_values('transaction_date', ascending=True).groupby(
         ['floor', 'dedicated_area']).tail(1)
     latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(object)
-    column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜',
-                   'floor': '층', 'transaction_amount': '거래금액(억)'}
+    latest_df = latest_df.sort_values('floor', ascending=False)
+    print(latest_df)
     latest_df = latest_df.rename(
         columns=column_dict)
-    c = alt.Chart(latest_df).mark_circle().encode(
-        x=column_dict['dedicated_area'],
-        y=column_dict['floor'],
+
+    # https://stackoverflow.com/questions/55907130/how-to-force-altair-to-order-heatmaprect-on-a-specific-axis
+    c = alt.Chart(latest_df).mark_rect().encode(
+        alt.X(column_dict['dedicated_area'] + ':O'),
+        alt.Y(column_dict['floor'] + ':O',
+              sort=alt.EncodingSortField(field='order', order='ascending')),
         size=column_dict['transaction_amount'],
-        color=column_dict['transaction_amount'],
+        color=column_dict['transaction_amount'] + ':Q',
         tooltip=[column_dict['transaction_date'],
                  column_dict['floor'],
                  column_dict['dedicated_area'],
                  column_dict['transaction_amount']])
-    st.altair_chart(c)
+    col1.altair_chart(c)
+
     df['transaction_amount'] = df['transaction_amount'].apply(
-        lambda x: str(round(x, 1)) + '억')
-    st.dataframe(df.rename(columns=column_dict))
+        lambda x: str(round(x, 1)))
+    df = df.reset_index(drop=True)
+    df = df.assign(hack='').set_index('hack')
+    df = df.rename(columns=column_dict)
+    col2.dataframe(df)
 
     # Chart #1
     df = get_data('./data_out/apt_amount_per_year/41135.csv')
     df = df.set_index('apt_name')
     df = df.loc[apt_name]
     st.markdown("""
-                ### 연도별 평균거래금액
-                
+                # 연도별 평균거래금액
+
                 * 연도별 거래금액 평균을 나타냈습니다.
-                
+
                 """)
+
+    col1, col2 = st.beta_columns([3, 1])
     chart = df[['transaction_year', 'transaction_amount']].groupby([
         'apt_name', 'transaction_year'
     ]).mean().reset_index()
@@ -143,7 +157,16 @@ def run_the_app():
     # st.dataframe(chart)
     chart = chart.fillna(0)
     chart.columns = [x for x in chart.columns]
-    st.line_chart(chart)
+    col1.line_chart(chart)
+
+    df = df.reset_index(drop=True)
+    df['transaction_year'] = df['transaction_year'].apply(
+        lambda x: str(x).split('-')[0])
+    df['transaction_amount'] = df['transaction_amount'].apply(
+        lambda x: str(round(x, 1)))
+    df = df.assign(hack='').set_index('hack')
+    df = df.rename(columns=column_dict)
+    col2.dataframe(df)
 
 
 if __name__ == "__main__":
