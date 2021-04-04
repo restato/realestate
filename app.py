@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from datetime import datetime, time
+from utils import get_hoga
 
 column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜',
                'floor': '층', 'transaction_amount': '거래금액(억)', 'transaction_year': '거래일자'}
@@ -67,23 +68,44 @@ def filtering(df: pd.DataFrame) -> pd.DataFrame:
 def slider():
     '''Slider'''
     st.sidebar.write('')  # Line break
-    st.sidebar.header('Navigation')
+    # st.sidebar.header('메뉴')
     side_menu_selectbox = st.sidebar.radio(
-        '메뉴', ('홈', '통계'))
+        '메뉴', ('홈', '통계', '뉴스', '관심목록'))
 
     if side_menu_selectbox == '홈':
         main()
     elif side_menu_selectbox == '통계':
-        statistic_ui()
+        statistic_home()
+    elif side_menu_selectbox == '뉴스':
+        news_home()
+    elif side_menu_selectbox == '관심목록':
+        fav_home()
 
 
-def statistic_ui():
-    st.write("statistic")
+def news_home():
+    st.markdown("# 늬우스 🔈")
+
+
+def statistic_home():
+    st.markdown("# 토옹계")
+
+
+def fav_home():
+    st.markdown("# 픽미픽미 🍢")
+
+    apt_code_dict = {'광교센트럴파크60단지': 138183, '광교센트럴타운62단지': 136913, '광교마을45단지': 137232,
+                     '광교마을40단지': 137233, '광교호반마을21단지': 135549, '광교호반마을22단지': 135550}
+
+    for k, v in apt_code_dict.items():
+        df, total_count = get_hoga(v, n=3)
+        st.markdown(
+            f'### [{k}](https://new.land.naver.com/complexes/{v}?), {total_count}개의 매물')
+        st.dataframe(df)
+    st.markdown("**NOTE**: 네이버에서 제공하는 데이터로 사용, 더 자세한 내용은 네이버 부동산에서 확인")
 
 
 def main():
-
-    @st.cache
+    @ st.cache
     def get_data(filename):
         df = pd.read_csv(filename)
         return raw_preprocessing(df)
@@ -91,7 +113,7 @@ def main():
     st.title('🏠 사고시펑?')
     st.markdown("""
         📢 공지
-        * 현재는 **분당구**만 구성했습니다.
+        * 현재는 ** 분당구**만 구성했습니다.
         * 평소에 궁금했던 부동산 관련한 내용을 차트와 글로 채워갈 계획입니다.
         * 아이디어/문의는 `direcision@gmail.com`로 ✉️ 주세요.
         """)
@@ -118,7 +140,7 @@ def main():
     # Chart #1
     st.markdown("""
         # 우리 옆집은 얼마 🤫
-     
+
         * 문득 궁금했습니다. 지금 얼마에 사서 살고 있는걸까?
         * 층/전용면적(m2) 단위로 언제 얼마에 매매했는지 차트에 나타냈습니다.
         * 차트에서 흰색은 거래 이력이 없음을 의미합니다.
@@ -158,9 +180,6 @@ def main():
     df = df.loc[apt_name]
     st.markdown("""
                 # 연도별 평균거래금액
-
-                * 연도별 거래금액 평균을 나타냈습니다.
-
                 """)
 
     col1, col2 = st.beta_columns([3, 1])
@@ -182,6 +201,8 @@ def main():
     df = df.assign(hack='').set_index('hack')
     df = df.rename(columns=column_dict)
     col2.dataframe(df)
+
+    st.markdown("""**Note**: X축은 년도, Y축은 거래금액""")
 
 
 def run_the_app():
