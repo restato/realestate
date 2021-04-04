@@ -27,7 +27,7 @@ def get_hoga(hscpNo, n=3) -> pd.DataFrame:
         response = requests.request("GET", url, headers=headers, data=payload)
         sleep(randint(3, 6) / 100)
 
-        if response.status_code != 200:
+        if response.status_code == 200:
             return response.text, -1
         print(response.status_code)
         print(response.text)
