@@ -12,8 +12,8 @@ def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
         df['transaction_amount'] = df['transaction_amount'].astype(object)
         df['transaction_amount'] = df['transaction_amount'].apply(
             lambda x: round(x / 10000, 1))
-        df['transaction_amount'] = df['transaction_amount'].apply(
-            lambda x: round(x, 1))
+        # df['transaction_amount'] = df['transaction_amount'].apply(
+        # lambda x: round(x, 1))
 
     # df['transaction_amount'] = df['transaction_amount'].astype(
     # float).apply(lambda x: round(x / 10000, 2))
@@ -32,6 +32,8 @@ def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     if 'dedicated_area' in df.columns:
         df['dedicated_area'] = df['dedicated_area'].apply(lambda x: round(x))
         df['dedicated_area'] = df['dedicated_area'].astype(object)
+        df['dedicated_area'] = df['dedicated_area'].apply(
+            lambda x: str(x) + "\t\t")  # fix bug for display as tabl
 
     return df
 
@@ -118,7 +120,9 @@ def run_the_app():
                  column_dict['dedicated_area'],
                  column_dict['transaction_amount']])
     st.altair_chart(c)
-    st.dataframe(df)
+    df['transaction_amount'] = df['transaction_amount'].apply(
+        lambda x: str(round(x, 1)) + '억')
+    st.dataframe(df.rename(columns=column_dict))
 
     # Chart #1
     df = get_data('./data_out/apt_amount_per_year/41135.csv')
