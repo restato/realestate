@@ -98,6 +98,10 @@ def fav_home():
 
     for k, v in apt_code_dict.items():
         df, total_count = get_hoga(v, n=3)
+
+        if total_count == -1:
+            st.markdown(df)
+
         st.markdown(
             f'### [{k}](https://new.land.naver.com/complexes/{v}?), {total_count}개의 매물')
         st.dataframe(df)
