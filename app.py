@@ -64,7 +64,24 @@ def filtering(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def run_the_app():
+def slider():
+    '''Slider'''
+    st.sidebar.write('')  # Line break
+    st.sidebar.header('Navigation')
+    side_menu_selectbox = st.sidebar.radio(
+        '메뉴', ('홈', '통계'))
+
+    if side_menu_selectbox == '홈':
+        main()
+    elif side_menu_selectbox == '통계':
+        statistic_ui()
+
+
+def statistic_ui():
+    st.write("statistic")
+
+
+def main():
 
     @st.cache
     def get_data(filename):
@@ -165,6 +182,10 @@ def run_the_app():
     df = df.assign(hack='').set_index('hack')
     df = df.rename(columns=column_dict)
     col2.dataframe(df)
+
+
+def run_the_app():
+    slider()
 
 
 if __name__ == "__main__":
