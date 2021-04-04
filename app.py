@@ -112,7 +112,6 @@ def run_the_app():
         ['floor', 'dedicated_area']).tail(1)
     latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(object)
     latest_df = latest_df.sort_values('floor', ascending=False)
-    print(latest_df)
     latest_df = latest_df.rename(
         columns=column_dict)
 
@@ -151,7 +150,6 @@ def run_the_app():
     chart = df[['transaction_year', 'transaction_amount']].groupby([
         'apt_name', 'transaction_year'
     ]).mean().reset_index()
-    print(chart)
     chart = chart.pivot(index='transaction_year',
                         columns='apt_name', values='transaction_amount')
     # st.dataframe(chart)
