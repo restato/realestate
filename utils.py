@@ -24,6 +24,7 @@ def get_hoga(hscpNo, n=3):
             'Referer': 'https://m.land.naver.com/'
         }
         response = requests.request("GET", url, headers=headers, data=payload)
+        print(response.text)
         sleep(randint(3, 6) / 100)
 
         # parse result
