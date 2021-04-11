@@ -5,8 +5,9 @@ import altair as alt
 from datetime import datetime, time
 from utils import get_hoga
 from utils import EsWrapper
+from quries import apt_list
 
-column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜',
+column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜', 'year_of_construction': '건축년도',
                'floor': '층', 'transaction_amount': '거래금액(억)', 'transaction_year': '거래일자'}
 
 es = EsWrapper()
@@ -73,7 +74,7 @@ def slider():
     st.sidebar.write('')  # Line break
     # st.sidebar.header('메뉴')
     side_menu_selectbox = st.sidebar.radio(
-        '메뉴', ('홈', '통계', '뉴스', '관심목록'))
+        '메뉴', ('홈', '통계', '세금', '뉴스')) #, '관심목록'))
 
     if side_menu_selectbox == '홈':
         main()
@@ -114,10 +115,18 @@ def fav_home():
 
 def main():
     @ st.cache
-    def get_data(filename):
-        df = es.search()        
+    def get_local_data(filename):
         # use local data for debug
-        # df = pd.read_csv(filename)
+        df = pd.read_csv(filename)
+        return raw_preprocessing(df)
+
+    @ st.cache
+    def get_apt_list(body):
+        return es.search(body)
+
+    @ st.cache(allow_output_mutation=True)
+    def get_remote_data(body):
+        df = es.search(body)
         return raw_preprocessing(df)
 
     st.title('🏠 사고시펑?')
@@ -127,12 +136,11 @@ def main():
         * 평소에 궁금했던 부동산 관련한 내용을 차트와 글로 채워갈 계획입니다.
         * 아이디어/문의는 `direcision@gmail.com`로 ✉️ 주세요.
         """)
-    df = get_data('./data_out/price_dedicatedarea_floor/41135.csv')
-    # df = filtering(df)
-    df = df.set_index('apt_name')
-    df = df.sort_index()
-    st.markdown(f"분당구에는 현재 아파트가 {len(df.index.unique().tolist())}개 있습니다.")
 
+    apts = get_apt_list(apt_list())
+    apts = apts['key'].unique().tolist()
+    st.markdown(f"분당구에는 현재 아파트가 {len(apts)}개 있습니다.")
+    
     # sigungu_info
     # floor_list = df['floor'].unique().tolist()
     # st.markdown(f"가장 높은 층은 {max(floor_list)}, 가장 낮은 층은 {min(floor_list)}")
@@ -140,13 +148,15 @@ def main():
 
     # APT INFO
     apt_name = st.selectbox(
-        "👇 아파트를 선택해주세요.", df.index.unique().tolist())
+        "👇 아파트를 선택해주세요.", apts)
 
-    if apt_name in df.index:
-        df = df.loc[apt_name]
-    else:
-        st.error(f'{apt_name}은 존재하지 않습니다.')
-
+    
+    data_load_state = st.text('데이터를 조회하고 있습니다.🍞')
+    body = {"from" : 0, "size" : 10000, "query": {"match": {"apt_name": apt_name}}}
+    df = get_remote_data(body)
+    data_load_state.text("데이터 불러오기 완료")
+    
+    df = df[['transaction_date','floor','dedicated_area','transaction_amount','transaction_year']] 
     # Chart #1
     st.markdown("""
         # 우리 옆집은 얼마 🤫
@@ -157,10 +167,10 @@ def main():
                 """)
 
     col1, col2 = st.beta_columns([1, 2])
-    latest_df = df.loc[[apt_name]][['transaction_date', 'floor', 'dedicated_area', 'transaction_amount']].sort_values('transaction_date', ascending=True).groupby(
+    latest_df = df[['transaction_date', 'floor', 'dedicated_area', 'transaction_amount']].sort_values('transaction_date', ascending=True).groupby(
         ['floor', 'dedicated_area']).tail(1)
-    latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(object)
-    latest_df = latest_df.sort_values('floor', ascending=False)
+    latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(float)
+    latest_df = latest_df.sort_values(['floor', 'dedicated_area'], ascending=False)
     latest_df = latest_df.rename(
         columns=column_dict)
 
@@ -176,42 +186,21 @@ def main():
                  column_dict['dedicated_area'],
                  column_dict['transaction_amount']])
     col1.altair_chart(c)
-
-    df['transaction_amount'] = df['transaction_amount'].apply(
-        lambda x: str(round(x, 1)))
-    df = df.reset_index(drop=True)
-    df = df.assign(hack='').set_index('hack')
-    df = df.rename(columns=column_dict)
-    col2.dataframe(df)
+    col2.dataframe(latest_df)
 
     # Chart #1
-    df = get_data('./data_out/apt_amount_per_year/41135.csv')
-    df = df.set_index('apt_name')
-    df = df.loc[apt_name]
     st.markdown("""
                 # 연도별 평균거래금액
                 """)
 
     col1, col2 = st.beta_columns([3, 1])
-    chart = df[['transaction_year', 'transaction_amount']].groupby([
-        'apt_name', 'transaction_year'
-    ]).mean().reset_index()
-    chart = chart.pivot(index='transaction_year',
-                        columns='apt_name', values='transaction_amount')
-    # st.dataframe(chart)
+    df['transaction_amount'] = df['transaction_amount'].apply(lambda x: float(x))
+    chart = df[['transaction_year', 'transaction_amount']].groupby('transaction_year').mean()
     chart = chart.fillna(0)
+    chart = chart.rename(columns=column_dict)
     chart.columns = [x for x in chart.columns]
     col1.line_chart(chart)
-
-    df = df.reset_index(drop=True)
-    df['transaction_year'] = df['transaction_year'].apply(
-        lambda x: str(x).split('-')[0])
-    df['transaction_amount'] = df['transaction_amount'].apply(
-        lambda x: str(round(x, 1)))
-    df = df.assign(hack='').set_index('hack')
-    df = df.rename(columns=column_dict)
-    col2.dataframe(df)
-
+    col2.dataframe(chart)
     st.markdown("""**Note**: X축은 년도, Y축은 거래금액""")
 
 

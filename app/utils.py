@@ -29,8 +29,10 @@ class EsWrapper():
     def __init__(self):
         self.es = Elasticsearch(hosts="192.168.0.56:9200", port=9200, serializer=NumpyEncoder())
         
-    def search(self):
-        response = self.es.search(index='apt-trade', body={})
+    def search(self, body={}):
+        response = self.es.search(index='apt-trade', body=body)
+        if 'aggregations' in response:
+            return pd.DataFrame(response['aggregations']['apts']['buckets'])
         df = pd.DataFrame(response['hits']['hits'])
         df = df['_source'].apply(pd.Series)
         return df
@@ -84,3 +86,16 @@ def get_hoga(hscpNo, n=3) -> pd.DataFrame:
     # df = df.drop('score', axis=0)
     df = df.reset_index(drop=True)
     return df, total_count
+
+def get_local_data():
+    df = get_local_data('./data_out/price_dedicatedarea_floor/41135.csv')
+    df = filtering(df)
+    df = df.set_index('apt_name')
+    df = df.sort_index()
+    '''
+    if apt_name in df.index:
+        df = df.loc[apt_name]
+    else:
+        st.error(f'{apt_name}은 존재하지 않습니다.')
+    '''
+    return df
