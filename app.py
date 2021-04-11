@@ -7,10 +7,18 @@ from utils import get_hoga
 from utils import EsWrapper
 from quries import apt_list
 
+hide_menu_style = """
+        <style>
+        #MainMenu {visibility: hidden;}
+        </style>
+        """
+st.markdown(hide_menu_style, unsafe_allow_html=True)
+
 column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜', 'year_of_construction': '건축년도',
                'floor': '층', 'transaction_amount': '거래금액(억)', 'transaction_year': '거래일자'}
 
 es = EsWrapper()
+
 
 def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     if 'apt_name' in df.columns:
@@ -74,7 +82,7 @@ def slider():
     st.sidebar.write('')  # Line break
     # st.sidebar.header('메뉴')
     side_menu_selectbox = st.sidebar.radio(
-        '메뉴', ('홈', '통계', '세금', '뉴스')) #, '관심목록'))
+        '메뉴', ('홈', '통계', '세금', '뉴스'))  # , '관심목록'))
 
     if side_menu_selectbox == '홈':
         main()
@@ -87,9 +95,10 @@ def slider():
     elif side_menu_selectbox == '관심목록':
         fav_home()
 
+
 def tax_home():
     st.markdown("# 세금 💸")
-    
+
 
 def news_home():
     st.markdown("# 늬우스 🔈")
@@ -140,7 +149,7 @@ def main():
     apts = get_apt_list(apt_list())
     apts = apts['key'].unique().tolist()
     st.markdown(f"분당구에는 현재 아파트가 {len(apts)}개 있습니다.")
-    
+
     # sigungu_info
     # floor_list = df['floor'].unique().tolist()
     # st.markdown(f"가장 높은 층은 {max(floor_list)}, 가장 낮은 층은 {min(floor_list)}")
@@ -150,13 +159,14 @@ def main():
     apt_name = st.selectbox(
         "👇 아파트를 선택해주세요.", apts)
 
-    
     data_load_state = st.text('데이터를 조회하고 있습니다.🍞')
-    body = {"from" : 0, "size" : 10000, "query": {"match": {"apt_name": apt_name}}}
+    body = {"from": 0, "size": 10000, "query": {
+        "match": {"apt_name": apt_name}}}
     df = get_remote_data(body)
     data_load_state.text("데이터 불러오기 완료")
-    
-    df = df[['transaction_date','floor','dedicated_area','transaction_amount','transaction_year']] 
+
+    df = df[['transaction_date', 'floor', 'dedicated_area',
+             'transaction_amount', 'transaction_year']]
     # Chart #1
     st.markdown("""
         # 우리 옆집은 얼마 🤫
@@ -170,7 +180,8 @@ def main():
     latest_df = df[['transaction_date', 'floor', 'dedicated_area', 'transaction_amount']].sort_values('transaction_date', ascending=True).groupby(
         ['floor', 'dedicated_area']).tail(1)
     latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(float)
-    latest_df = latest_df.sort_values(['floor', 'dedicated_area'], ascending=False)
+    latest_df = latest_df.sort_values(
+        ['floor', 'dedicated_area'], ascending=False)
     latest_df = latest_df.rename(
         columns=column_dict)
 
@@ -194,8 +205,10 @@ def main():
                 """)
 
     col1, col2 = st.beta_columns([3, 1])
-    df['transaction_amount'] = df['transaction_amount'].apply(lambda x: float(x))
-    chart = df[['transaction_year', 'transaction_amount']].groupby('transaction_year').mean()
+    df['transaction_amount'] = df['transaction_amount'].apply(
+        lambda x: float(x))
+    chart = df[['transaction_year', 'transaction_amount']
+               ].groupby('transaction_year').mean()
     chart = chart.fillna(0)
     chart = chart.rename(columns=column_dict)
     chart.columns = [x for x in chart.columns]
