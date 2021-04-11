@@ -1,4 +1,5 @@
 app/data_in
 app/__pycache__
 app/venv
+es/esdata
 .vscode

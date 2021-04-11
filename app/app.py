@@ -76,11 +76,16 @@ def slider():
         main()
     elif side_menu_selectbox == '통계':
         statistic_home()
+    elif side_menu_selectbox == '세금':
+        tax_home()
     elif side_menu_selectbox == '뉴스':
         news_home()
     elif side_menu_selectbox == '관심목록':
         fav_home()
 
+def tax_home():
+    st.markdown("# 세금 💸")
+    
 
 def news_home():
     st.markdown("# 늬우스 🔈")
@@ -98,10 +103,6 @@ def fav_home():
 
     for k, v in apt_code_dict.items():
         df, total_count = get_hoga(v, n=3)
-
-        if total_count == -1:
-            st.markdown(df)
-
         st.markdown(
             f'### [{k}](https://new.land.naver.com/complexes/{v}?), {total_count}개의 매물')
         st.dataframe(df)
