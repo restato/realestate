@@ -3,4 +3,4 @@ __pycache__
 venv
 es/esdata
 .vscode
-secrets.toml
+.streamlit/secrets.toml

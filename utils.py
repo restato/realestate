@@ -5,31 +5,35 @@ import pandas as pd
 import numpy as np
 import streamlit as st
 
-from elasticsearch import Elasticsearch,JSONSerializer, helpers
+from elasticsearch import Elasticsearch, JSONSerializer, helpers
 from random import randint
 from time import sleep
 
 # https://github.com/elastic/elasticsearch-py/issues/378
+
+
 class NumpyEncoder(JSONSerializer):
     """ Special json encoder for numpy types """
+
     def default(self, obj):
         if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
-            np.int16, np.int32, np.int64, np.uint8,
-            np.uint16, np.uint32, np.uint64)):
+                            np.int16, np.int32, np.int64, np.uint8,
+                            np.uint16, np.uint32, np.uint64)):
             return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32, 
-            np.float64)):
+        elif isinstance(obj, (np.float_, np.float16, np.float32,
+                              np.float64)):
             return float(obj)
-        elif isinstance(obj,(np.ndarray,)): #### This is the fix
+        elif isinstance(obj, (np.ndarray,)):  # This is the fix
             return obj.tolist()
         return JSONSerializer.default(self, obj)
-        
+
 
 class EsWrapper():
-    
+
     def __init__(self):
-        self.es = Elasticsearch(hosts=st.secrets.db.credentials.hostname + ":9200", port=9200, serializer=NumpyEncoder())
-        
+        self.es = Elasticsearch(
+            hosts=st.secrets['db_credentials']['hostname'] + ":9200", port=9200, serializer=NumpyEncoder())
+
     def search(self, body={}):
         response = self.es.search(index='apt-trade', body=body)
         if 'aggregations' in response:
@@ -87,6 +91,7 @@ def get_hoga(hscpNo, n=3) -> pd.DataFrame:
     # df = df.drop('score', axis=0)
     df = df.reset_index(drop=True)
     return df, total_count
+
 
 def get_local_data():
     df = get_local_data('./data_out/price_dedicatedarea_floor/41135.csv')
