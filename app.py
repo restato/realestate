@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import glob
 
 from datetime import datetime, time
 from utils import get_hoga
@@ -98,6 +99,11 @@ def slider():
 
 def tax_home():
     st.markdown("# 세금 💸")
+    filelist = glob.glob('./images/tax/*')
+    filelist.sort()
+    print(filelist)
+    for filename in filelist:
+        st.image(f'{filename}')
 
 
 def news_home():
@@ -174,7 +180,7 @@ def main():
         * 차트에서 흰색은 거래 이력이 없음을 의미합니다.
                 """)
 
-    col1, col2 = st.beta_columns([1, 2])
+    col1, col2 = st.beta_columns([3, 5])
     latest_df = df[['transaction_date', 'floor', 'dedicated_area', 'transaction_amount']].sort_values('transaction_date', ascending=True).groupby(
         ['floor', 'dedicated_area']).tail(1)
     latest_df['dedicated_area'] = latest_df['dedicated_area'].astype(float)
@@ -195,14 +201,14 @@ def main():
                  column_dict['dedicated_area'],
                  column_dict['transaction_amount']])
     col1.altair_chart(c)
-    col2.dataframe(latest_df)
+    col2.dataframe(latest_df.set_index(column_dict['transaction_date']))
 
     # Chart #1
     st.markdown("""
                 # 연도별 평균거래금액
                 """)
 
-    col1, col2 = st.beta_columns([3, 1])
+    col1, col2 = st.beta_columns([5, 3])
     df['transaction_amount'] = df['transaction_amount'].apply(
         lambda x: float(x))
     chart = df[['transaction_year', 'transaction_amount']
@@ -211,7 +217,7 @@ def main():
     chart = chart.rename(columns=column_dict)
     chart.columns = [x for x in chart.columns]
     col1.line_chart(chart)
-    col2.dataframe(chart)
+    col2.dataframe(chart.sort_index(ascending=False))
     st.markdown("""**Note**: X축은 년도, Y축은 거래금액""")
 
 
