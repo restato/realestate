@@ -2,9 +2,38 @@ import pandas as pd
 import requests
 import json
 import pandas as pd
+import numpy as np
 
+from elasticsearch import Elasticsearch,JSONSerializer, helpers
 from random import randint
 from time import sleep
+
+# https://github.com/elastic/elasticsearch-py/issues/378
+class NumpyEncoder(JSONSerializer):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
+            np.int16, np.int32, np.int64, np.uint8,
+            np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32, 
+            np.float64)):
+            return float(obj)
+        elif isinstance(obj,(np.ndarray,)): #### This is the fix
+            return obj.tolist()
+        return JSONSerializer.default(self, obj)
+        
+
+class EsWrapper():
+    
+    def __init__(self):
+        self.es = Elasticsearch(hosts="192.168.0.56:9200", port=9200, serializer=NumpyEncoder())
+        
+    def search(self):
+        response = self.es.search(index='apt-trade', body={})
+        df = pd.DataFrame(response['hits']['hits'])
+        df = df['_source'].apply(pd.Series)
+        return df
 
 
 def get_hoga(hscpNo, n=3) -> pd.DataFrame:

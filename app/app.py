@@ -1,12 +1,15 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+
 from datetime import datetime, time
 from utils import get_hoga
+from utils import EsWrapper
 
 column_dict = {'dedicated_area': '전용면적(m2)', 'transaction_date': '거래날짜',
                'floor': '층', 'transaction_amount': '거래금액(억)', 'transaction_year': '거래일자'}
 
+es = EsWrapper()
 
 def raw_preprocessing(df: pd.DataFrame) -> pd.DataFrame:
     if 'apt_name' in df.columns:
@@ -112,7 +115,9 @@ def fav_home():
 def main():
     @ st.cache
     def get_data(filename):
-        df = pd.read_csv(filename)
+        df = es.search()        
+        # use local data for debug
+        # df = pd.read_csv(filename)
         return raw_preprocessing(df)
 
     st.title('🏠 사고시펑?')
