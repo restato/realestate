@@ -1,5 +1,6 @@
-app/data_in
-app/__pycache__
-app/venv
+data_in
+__pycache__
+venv
 es/esdata
 .vscode
+secrets.toml
