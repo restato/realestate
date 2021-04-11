@@ -3,7 +3,7 @@ import pandas as pd
 import altair as alt
 import glob
 
-from datetime import datetime, time
+from datetime import datetime, time, date
 from utils import get_hoga
 from utils import EsWrapper
 from quries import apt_list
@@ -98,16 +98,20 @@ def slider():
 
 
 def tax_home():
-    st.markdown("# 세금 💸")
+    st.title("# 세금 💸")
     filelist = glob.glob('./images/tax/*')
     filelist.sort()
-    print(filelist)
     for filename in filelist:
         st.image(f'{filename}')
 
 
 def news_home():
     st.markdown("# 늬우스 🔈")
+    d = st.date_input('start date', datetime.now())
+    filelist = glob.glob(f'./images/news/{d}/*')
+    filelist.sort()
+    for filename in filelist:
+        st.image(f'{filename}')
 
 
 def statistic_home():
