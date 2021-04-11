@@ -3,6 +3,7 @@ import requests
 import json
 import pandas as pd
 import numpy as np
+import streamlit as st
 
 from elasticsearch import Elasticsearch,JSONSerializer, helpers
 from random import randint
@@ -27,7 +28,7 @@ class NumpyEncoder(JSONSerializer):
 class EsWrapper():
     
     def __init__(self):
-        self.es = Elasticsearch(hosts="192.168.0.56:9200", port=9200, serializer=NumpyEncoder())
+        self.es = Elasticsearch(hosts=st.secrets.db.credentials.hostname + ":9200", port=9200, serializer=NumpyEncoder())
         
     def search(self, body={}):
         response = self.es.search(index='apt-trade', body=body)
