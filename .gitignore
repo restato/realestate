@@ -1,4 +1,4 @@
-data_in
-__pycache__
-venv
+app/data_in
+app/__pycache__
+app/venv
 .vscode
