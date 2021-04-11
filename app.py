@@ -159,11 +159,9 @@ def main():
     apt_name = st.selectbox(
         "👇 아파트를 선택해주세요.", apts)
 
-    data_load_state = st.text('데이터를 조회하고 있습니다.🍞')
     body = {"from": 0, "size": 10000, "query": {
         "match": {"apt_name": apt_name}}}
     df = get_remote_data(body)
-    data_load_state.text("데이터 불러오기 완료")
 
     df = df[['transaction_date', 'floor', 'dedicated_area',
              'transaction_amount', 'transaction_year']]
