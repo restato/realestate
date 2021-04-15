@@ -37,7 +37,10 @@ class EsWrapper():
     def search(self, body={}):
         response = self.es.search(index='apt-trade', body=body)
         if 'aggregations' in response:
-            return pd.DataFrame(response['aggregations']['apts']['buckets'])
+            if 'apt' in response['aggregations']:
+                return pd.DataFrame(response['aggregations']['apts']['buckets'])
+            elif 'apt_name' in response['aggregations']:
+                return pd.DataFrame(response['aggregations']['apt_name']['buckets'])
         df = pd.DataFrame(response['hits']['hits'])
         df = df['_source'].apply(pd.Series)
         return df

@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 import glob
+import queries
 
 from datetime import datetime, time, date
 from utils import get_hoga
 from utils import EsWrapper
-from quries import apt_list
 
 hide_menu_style = """
         <style>
@@ -83,18 +83,36 @@ def slider():
     st.sidebar.write('')  # Line break
     # st.sidebar.header('메뉴')
     side_menu_selectbox = st.sidebar.radio(
-        '메뉴', ('홈', '통계', '세금', '뉴스'))  # , '관심목록'))
+        '메뉴', ('홈', '통계', '신고가', '세금', '뉴스'))  # , '관심목록'))
 
     if side_menu_selectbox == '홈':
-        main()
+        new_high()  # main()
     elif side_menu_selectbox == '통계':
         statistic_home()
+    elif side_menu_selectbox == '신고가':
+        new_high()
     elif side_menu_selectbox == '세금':
         tax_home()
     elif side_menu_selectbox == '뉴스':
         news_home()
     elif side_menu_selectbox == '관심목록':
         fav_home()
+
+
+def new_high():
+    @ st.cache(allow_output_mutation=True)
+    def get_data():
+        df = es.search(queries.new_high())
+        return df
+
+    df = get_data()
+    df['values'] = df['raw_values'].apply(
+        lambda x: pd.Series(x['hits']['hits'][0]))[['_source']]
+    df = pd.concat([df['key'], df['values'].apply(pd.Series)], axis=1)
+    # print(df['transaction_amount'].apply(
+    # lambda x: x['hits']['hits'][0]['_source']))
+    st.text("신고가")
+    st.dataframe(df)
 
 
 def tax_home():
@@ -156,7 +174,7 @@ def main():
         * 아이디어/문의는 `direcision@gmail.com`로 ✉️ 주세요.
         """)
 
-    apts = get_apt_list(apt_list())
+    apts = get_apt_list(queries.apt_list())
     apts = apts['key'].unique().tolist()
     st.markdown(f"분당구에는 현재 아파트가 {len(apts)}개 있습니다.")
 
