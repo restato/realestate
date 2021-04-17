@@ -4,7 +4,9 @@ import json
 import pandas as pd
 import numpy as np
 import streamlit as st
+import locale
 
+from pathlib import Path
 from elasticsearch import Elasticsearch, JSONSerializer, helpers
 from random import randint
 from time import sleep
@@ -108,3 +110,89 @@ def get_local_data():
         st.error(f'{apt_name}은 존재하지 않습니다.')
     '''
     return df
+
+
+def read_markdown_file(markdown_file):
+    return Path(markdown_file).read_text()
+
+
+def int_to_string_with_comma(value):
+    # Use '' for auto, or force e.g. to 'en_US.UTF-8'
+    locale.setlocale(locale.LC_ALL, '')
+    return locale.format("%d", value, grouping=True)
+
+
+def get_kor_amount_string_no_change(num_amount, ndigits_keep=3):
+    """잔돈은 자르고 숫자를 자릿수 한글단위와 함께 리턴한다 """
+    return get_kor_amount_string(num_amount, -(len(str(num_amount)) - ndigits_keep))
+
+
+def get_kor_amount_string(num_amount, ndigits_round=0, str_suffix='원'):
+    """숫자를 자릿수 한글단위와 함께 리턴한다 """
+    assert isinstance(num_amount, int) and isinstance(ndigits_round, int)
+    assert num_amount >= 1, '최소 1원 이상 입력되어야 합니다'
+    # 일, 십, 백, 천, 만, 십, 백, 천, 억, ... 단위 리스트를 만든다.
+    maj_units = ['만', '억', '조', '경', '해', '자',
+                 '양', '구', '간', '정', '재', '극']  # 10000 단위
+    units = [' ']  # 시작은 일의자리로 공백으로하고 이후 십, 백, 천, 만...
+    for mm in maj_units:
+        units.extend(['십', '백', '천'])  # 중간 십,백,천 단위
+        units.append(mm)
+
+    list_amount = list(str(round(num_amount, ndigits_round))
+                       )  # 라운딩한 숫자를 리스트로 바꾼다
+    list_amount.reverse()  # 일, 십 순서로 읽기 위해 순서를 뒤집는다
+
+    str_result = ''  # 결과
+    num_len_list_amount = len(list_amount)
+
+    for i in range(num_len_list_amount):
+        str_num = list_amount[i]
+        # 만, 억, 조 단위에 천, 백, 십, 일이 모두 0000 일때는 생략
+        if num_len_list_amount >= 9 and i >= 4 and i % 4 == 0 and ''.join(list_amount[i:i+4]) == '0000':
+            continue
+        if str_num == '0':  # 0일 때
+            if i % 4 == 0:  # 4번째자리일 때(만, 억, 조...)
+                str_result = units[i] + str_result  # 단위만 붙인다
+        elif str_num == '1':  # 1일 때
+            if i % 4 == 0:  # 4번째자리일 때(만, 억, 조...)
+                str_result = str_num + units[i] + str_result  # 숫자와 단위를 붙인다
+            else:  # 나머지자리일 때
+                str_result = units[i] + str_result  # 단위만 붙인다
+        else:  # 2~9일 때
+            str_result = str_num + units[i] + str_result  # 숫자와 단위를 붙인다
+    str_result = str_result.strip()  # 문자열 앞뒤 공백을 제거한다
+    if len(str_result) == 0:
+        return None
+    if not str_result[0].isnumeric():  # 앞이 숫자가 아닌 문자인 경우
+        str_result = '1' + str_result  # 1을 붙인다
+    return str_result + str_suffix  # 접미사를 붙인다
+
+
+def get_wonwha_string(num_wonwha_amout):
+    """ 입력된 원화를 4자리단위 한글로 변환한다 """
+    str_result = ""  # 결과문자열 초기화
+    str_sign = ""  # 부호 초기화
+    num_change = num_wonwha_amout  # 최초값을 모두 잔돈에 넣는다
+
+    if num_change == 0:  # 0원이면
+        str_result = "0"
+    elif num_change < 0:  # 음수이면
+        str_sign = "-"  # 음의 부호(Negative Sign)를 붙이고
+        num_change = abs(num_change)  # 절대값으로 변환 후 변환을 계속한다
+
+    if num_change >= 100000000:  # 1억 이상
+        str_result += f"{int(num_change // 100000000):,}억"
+        num_change = num_change % 100000000
+    if num_change >= 10000:  # 1만 이상
+        str_result += f" {int(num_change // 10000):,}만"
+        num_change = num_change % 10000
+    if num_change >= 1:  # 1 이상
+        str_result += f" {int(num_change):,}"
+
+    # Return a copy of the string with the leading and trailing characters removed
+    str_result = str_result.strip()
+    if len(str_result) >= 1:
+        return str_sign + str_result + "원"
+    else:
+        return str_result
